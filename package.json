@@ -1,0 +1,32 @@
+{
+  "name": "prosemirror-vite-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shlroland/Prosemirror-vite-demo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shlroland/Prosemirror-vite-demo/issues"
+  },
+  "homepage": "https://github.com/shlroland/Prosemirror-vite-demo#readme",
+  "dependencies": {
+    "@benrbray/prosemirror-math": "^0.2.2",
+    "lit": "^2.6.1",
+    "prettier-plugin-elm": "^0.9.0",
+    "prosemirror-dropcursor": "^1.6.1",
+    "prosemirror-example-setup": "^1.2.1",
+    "prosemirror-hyperlink": "^0.0.6",
+    "prosemirror-keymap": "^1.2.0",
+    "prosemirror-markdown": "^1.10.1",
+    "vite-plugin-elm": "^2.7.2"
+  }
+}
