@@ -22,6 +22,7 @@
     "@benrbray/prosemirror-math": "^0.2.2",
     "lit": "^2.6.1",
     "prettier-plugin-elm": "^0.9.0",
+    "prosemirror-dev-tools": "^4.0.0",
     "prosemirror-dropcursor": "^1.6.1",
     "prosemirror-example-setup": "^1.2.1",
     "prosemirror-hyperlink": "^0.0.6",

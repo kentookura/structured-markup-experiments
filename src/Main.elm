@@ -209,9 +209,10 @@ viewEditor config { doc, transactions } =
     node
         "math-editor"
         [ property "value" (doc |> encodeWith config.markEncoder)
+        , property "transactions" (encodeTransactions config.markEncoder transactions)
         , Events.on "change" <|
             Decode.map2 (\state selection -> config.onChange ( state, selection ))
-                (Decode.at [ "detail", "state" ] (decoder config.markDecoder |> withLogging))
+                (Decode.at [ "detail", "state" ] (docDecoder config.markDecoder |> withLogging))
                 (Decode.at [ "detail", "selection" ] (selectionDecoder |> withLogging))
         ]
         []
@@ -221,14 +222,12 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Example Academic Webpage"
     , body =
-        [ --[ property "value"
-          --    (Encode.object
-          --        [ ( "name", Encode.string "Kento" )
-          --        , ( "age", Encode.int 24 )
-          --        ]
-          --    )
-          --]
-          viewEditor { markEncoder = mathMarkEncoder, markDecoder = mathMarkDecoder, onChange = DocChange } model.editorState
+        [ viewEditor
+            { markEncoder = mathMarkEncoder
+            , markDecoder = mathMarkDecoder
+            , onChange = DocChange
+            }
+            model.editorState
 
         --, pre []
         --    [ Result.withDefault "" (Json.Print.prettyString { indent = 4, columns = 80 } docJson) |> text ]
@@ -253,7 +252,7 @@ init flags url key =
     ( { selection = { from = 0, to = 0 }
       , editorState =
             { doc =
-                case Decode.decodeString (decoder customMarkDecoder) docJson of
+                case Decode.decodeString (docDecoder customMarkDecoder) docJson of
                     Ok value ->
                         value
 
@@ -284,8 +283,43 @@ init flags url key =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        DocChange ( newDoc, selection ) ->
+            let
+                editorState =
+                    model.editorState
+
+                newEditorState =
+                    { editorState | doc = newDoc }
+            in
+            ( { model | editorState = newEditorState, selection = selection }, Cmd.none )
+
         _ ->
             ( model, Cmd.none )
+
+
+encodeTransactions : CustomEncoder a -> List ( Int, Transaction a ) -> Encode.Value
+encodeTransactions customEncoder transactions =
+    Encode.list
+        (\( id, transaction ) ->
+            case transaction of
+                AddMark selection mark ->
+                    Encode.object
+                        [ ( "type", Encode.string "add-mark" )
+                        , ( "id", Encode.int id )
+                        , ( "from", Encode.int selection.from )
+                        , ( "to", Encode.int selection.to )
+                        , ( "details", encodeMark customEncoder mark )
+                        ]
+        )
+        transactions
+
+
+applyTransaction : Transaction a -> State a -> State a
+applyTransaction transaction state =
+    { state
+        | transactions = ( state.nextTransactionId, transaction ) :: state.transactions
+        , nextTransactionId = state.nextTransactionId + 1
+    }
 
 
 subscriptions : Model -> Sub Msg
@@ -344,8 +378,8 @@ withLogging realDecoder =
             )
 
 
-decoder : (String -> Decoder a) -> Decoder (Doc a)
-decoder customDecoder =
+docDecoder : (String -> Decoder a) -> Decoder (Doc a)
+docDecoder customDecoder =
     Decode.map Doc <|
         Decode.andThen
             (\type_ ->
@@ -451,15 +485,13 @@ customMarkDecoder name =
 --postDoc : Cmd Msg
 --postDoc =
 --    Http.post { url = "https://kento.builtwithdark.com/docs", body = jsonBody (Decode. }
-
-
-decodedDocJson =
-    case docJson |> Decode.decodeString (decoder customMarkDecoder) of
-        Ok value ->
-            value
-
-        Err err ->
-            empty
+--decodedDocJson =
+--    case docJson |> Decode.decodeString (decoder customMarkDecoder) of
+--        Ok value ->
+--            value
+--
+--        Err err ->
+--            empty
 
 
 docJson : String
