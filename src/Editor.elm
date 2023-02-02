@@ -23,8 +23,6 @@ type Msg
     | DocChange ( Doc CustomMark, Selection )
 
 
-
-
 type alias State a =
     { doc : Doc a
     , transactions : List ( Int, Transaction a )
@@ -338,15 +336,11 @@ viewEditor config { doc, transactions } =
 
 
 
-
-
 -- UPDATE
 -- Use the `sendMessage` port when someone presses ENTER or clicks
 -- the "Send" button. Check out index.html to see the corresponding
 -- JS where this is piped into a WebSocket.
 --
-
-
 
 
 encodeTransactions : DocEncoder a -> List ( Int, Transaction a ) -> Encode.Value
@@ -374,8 +368,6 @@ applyTransaction transaction state =
     }
 
 
-
-
 withLogging : Decoder a -> Decoder a
 withLogging realDecoder =
     Decode.value
@@ -383,16 +375,16 @@ withLogging realDecoder =
             (\event ->
                 case Decode.decodeValue realDecoder event of
                     Ok decoded ->
-                        let
-                            _ =
-                                Debug.log "Decoding success:" (Debug.toString (Decode.succeed decoded))
-                        in
+                        --let
+                        --    _ =
+                        --        Debug.log "Decoding success:" (Debug.toString (Decode.succeed decoded))
+                        --in
                         Decode.succeed decoded
 
                     Err error ->
                         error
                             |> Decode.errorToString
-                            |> Debug.log "decoding error"
+                            --|> Debug.log "decoding error"
                             |> Decode.fail
             )
 

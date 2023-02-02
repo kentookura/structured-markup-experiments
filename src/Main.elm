@@ -10,11 +10,11 @@ import Editor
         , State
         , customMarkDecoder
         , docDecoder
-        , viewEditor
         , docFormula
         , empty
         , mathMarkDecoder
-        ,mathMarkEncoder
+        , mathMarkEncoder
+        , viewEditor
         )
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -60,10 +60,10 @@ init flags url key =
                         value
 
                     Err err ->
-                        let
-                            _ =
-                                Debug.log "Error while decoding document: " err
-                        in
+                        --let
+                        --    _ =
+                        --        Debug.log "Error while decoding document: " err
+                        --in
                         empty
             , transactions = []
             , nextTransactionId = 1
