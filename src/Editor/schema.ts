@@ -1,4 +1,10 @@
-import { Schema, NodeSpec, NodeType, DOMOutputSpec } from "prosemirror-model";
+import {
+  Schema,
+  NodeSpec,
+  Node,
+  NodeType,
+  DOMOutputSpec,
+} from "prosemirror-model";
 import { InputRule } from "prosemirror-inputrules";
 
 const environments = ["definition", "theorem", "corollary", "proof"];
@@ -7,7 +13,7 @@ const environment: NodeSpec = {
   attrs: { type: { default: "definition" } },
   content: "block*",
   group: "block",
-  toDom: (node) => [
+  toDom: (node: Node) => [
     "p",
     {
       "environment-type": node.attrs.type,
@@ -18,7 +24,7 @@ const environment: NodeSpec = {
     {
       tag: "p[environment-type]",
       getAttrs: (dom) => {
-        let type = dom.getAttribute("environment-type");
+        let type = (dom as HTMLElement).getAttribute("environment-type");
         return environments.indexOf(type) > -1 ? type : false;
       },
     },
