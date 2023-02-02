@@ -28,6 +28,7 @@
     "prosemirror-hyperlink": "^0.0.6",
     "prosemirror-keymap": "^1.2.0",
     "prosemirror-markdown": "^1.10.1",
+    "tailwindcss": "^3.2.4",
     "vite-plugin-elm": "^2.7.2"
   }
 }
