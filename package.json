@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "docs:dev": "vitepress dev docs"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
     "prosemirror-keymap": "^1.2.0",
     "prosemirror-markdown": "^1.10.1",
     "tailwindcss": "^3.2.4",
-    "vite-plugin-elm": "^2.7.2"
+    "vite-plugin-elm": "^2.7.2",
+    "vitepress": "^1.0.0-alpha.45"
   }
 }
