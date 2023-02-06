@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Editor
     exposing
@@ -19,23 +20,34 @@ import Editor
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events exposing (..)
-import Json.Decode as Decode exposing (Decoder, andThen)
-import Json.Encode as Encode exposing (Value)
+import Json.Decode as Json exposing (Decoder, andThen)
+import Task
+import Theory.EmbedKatex as Katex exposing (asInline, katex)
 import Url exposing (Url)
 
 
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
-    | DocChange ( Doc CustomMark, Selection )
+    | SaveInput String
+    | KeyPress Key
+    | ChangeMode
+    | FocusOn String
+    | FocusResult (Result Dom.Error ())
 
 
 type alias Model =
-    { selection : Selection
-    , editorState : State CustomMark
-    , isHighlighting : Bool
-    , nextHighlightId : Int
-    }
+    { content : String, mode : Mode }
+
+
+type Mode
+    = View
+    | Edit
+
+
+type Key
+    = Character Char
+    | Control String
 
 
 main : Program () Model Msg
@@ -52,69 +64,100 @@ main =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { selection = { from = 0, to = 0 }
-      , editorState =
-            { doc =
-                case Decode.decodeString (docDecoder customMarkDecoder) docFormula of
-                    Ok value ->
-                        value
-
-                    Err err ->
-                        --let
-                        --    _ =
-                        --        Debug.log "Error while decoding document: " err
-                        --in
-                        empty
-            , transactions = []
-            , nextTransactionId = 1
-            }
-      , isHighlighting = False
-      , nextHighlightId = 1
-      }
-    , Cmd.none
-    )
+    ( { content = "a=b", mode = Edit }, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        DocChange ( newDoc, selection ) ->
-            let
-                editorState =
-                    model.editorState
+        FocusOn id ->
+            ( model, Dom.focus id |> Task.attempt FocusResult )
 
-                newEditorState =
-                    { editorState | doc = newDoc }
-            in
-            ( { model | editorState = newEditorState, selection = selection }, Cmd.none )
+        FocusResult result ->
+            case result of
+                Err (Dom.NotFound i) ->
+                    ( model, Cmd.none )
 
-        _ ->
+                Ok () ->
+                    ( model, Cmd.none )
+
+        SaveInput str ->
+            --let
+            --    _ =
+            --        Debug.log "saving" str
+            --in
+            ( { model | content = str }, Cmd.none )
+
+        ChangeMode ->
+            case model.mode of
+                View ->
+                    ( { model | mode = Edit }, Cmd.none )
+
+                Edit ->
+                    ( { model | mode = View }, Cmd.none )
+
+        KeyPress _ ->
+            ( model, Cmd.none )
+
+        LinkClicked _ ->
+            ( model, Cmd.none )
+
+        UrlChanged _ ->
             ( model, Cmd.none )
 
 
 view : Model -> Browser.Document Msg
 view model =
     { title = "Demo"
-    , body =
-        [ div [ class "" ]
-            [ viewEditor
-                { markEncoder = mathMarkEncoder
-                , markDecoder = mathMarkDecoder
-                , onChange = DocChange
-                }
-                model.editorState
-
-            --, pre
-            --    []
-            --    [ text (Debug.toString model.editorState) ]
-            ]
-
-        --, pre []
-        --    [ Result.withDefault "" (Json.Print.prettyString { indent = 4, columns = 80 } docJson) |> text ]
-        ]
+    , body = [ viewNode model, pre [] [ text model.content ] ]
     }
+
+
+viewNode : Model -> Html Msg
+viewNode model =
+    let
+        show =
+            case model.mode of
+                Edit ->
+                    ""
+
+                View ->
+                    ""
+    in
+    div []
+        [ a
+            []
+            [ Katex.view (model.content |> katex |> asInline) ]
+        , div
+            [ contenteditable True
+            , on "blur" (Json.map SaveInput targetTextContent)
+            , on "keydown" (Json.map KeyPress keyDecoder)
+            ]
+            [ pre [] [ text model.content ]
+            ]
+        ]
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
+
+
+targetTextContent : Json.Decoder String
+targetTextContent =
+    Json.at [ "target", "textContent" ] Json.string
+
+
+keyDecoder : Json.Decoder Key
+keyDecoder =
+    Json.map toKey (Json.field "key" Json.string)
+
+
+toKey : String -> Key
+toKey string =
+    case String.uncons string of
+        Just ( char, "" ) ->
+            Character char
+
+        _ ->
+            Control string

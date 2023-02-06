@@ -21,6 +21,7 @@
   "homepage": "https://github.com/shlroland/Prosemirror-vite-demo#readme",
   "dependencies": {
     "@benrbray/prosemirror-math": "^0.2.2",
+    "katex": "^0.16.4",
     "lit": "^2.6.1",
     "prettier-plugin-elm": "^0.9.0",
     "prosemirror-dev-tools": "^4.0.0",
