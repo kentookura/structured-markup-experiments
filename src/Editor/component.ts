@@ -19,15 +19,6 @@ export class MathEditor extends LitElement {
   @property({ type: Boolean })
   public focused: boolean = false;
 
-  @property({ type: String })
-  public promptCancelAction: string = "Cancel";
-
-  @property({ type: String })
-  public promptSaveAction: string = "Save";
-
-  @property({ type: String })
-  public promptTextPlaceholder: string = "Text to display";
-
   private editor?: EditorView;
 
   @query("#editor")

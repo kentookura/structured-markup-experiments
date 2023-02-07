@@ -38,7 +38,6 @@ let blockMathInputRule = makeBlockMathInputRule(
 );
 export const plugins = [
   mathPlugin,
-  inputRules({ rules: [inlineMathInputRule, blockMathInputRule] }),
   keymap({
     "Mod-Space": insertMathCmd(mathSchema.nodes.math_inline),
     Backspace: chainCommands(
@@ -57,6 +56,7 @@ export const plugins = [
     "Ctrl-Enter": chainCommands(newlineInCode, createParagraphNear, splitBlock),
     Delete: chainCommands(deleteSelection, joinForward, selectNodeForward),
   }),
+  inputRules({ rules: [inlineMathInputRule, blockMathInputRule] }),
   //dropCursor(),
   //gapCursor(),
   history(),
