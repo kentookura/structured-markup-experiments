@@ -4,92 +4,94 @@ import Browser
 import Browser.Dom as Dom
 import Browser.Events exposing (onKeyDown)
 import Browser.Navigation as Nav
-import Html exposing (..)
+import Html exposing (Html, a, div, h1, li, p, text, ul)
 import Html.Attributes as Attributes exposing (attribute, class, property)
 import Html.Events as Events exposing (..)
 import Html.Keyed as Keyed
 import Json.Decode as Decode exposing (Decoder, andThen)
 import Json.Encode as Encode exposing (Value)
-import Lib.EmbedKatex as Katex exposing (asInline, katex)
+import Lazy.Tree as Tree exposing (..)
+import Lazy.Tree.Zipper as Zipper exposing (..)
+import Lib.EmbedKatex as Katex exposing (KatexDisplay(..), asInline, katex, withDisplay)
 import Task
-import Tree
-import Tree.Zipper exposing (Zipper, fromTree)
 import Url exposing (Url)
 
 
-type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
-    | ContentChanged String
-    | KeyPress String
-
-
-type NodeMsg
-    = ChangeMode
-
-
 type alias Model =
-    Zipper Content
-
-
-type alias Node =
-    { content : String, mode : Mode }
+    Zipper Doc
 
 
 type Doc
-    = Doc (List Content)
-
-
-type alias NodeConfig =
-    { defineBlock : String }
-
-
-encodeNodeConfig : NodeConfig -> Value
-encodeNodeConfig cfg =
-    Encode.object
-        [ ( "defineBlock", Encode.string cfg.defineBlock )
-        ]
-
-
-type Key
-    = Space
-    | Left
-    | Right
-    | Up
-    | Down
-    | Shift
-    | Ctrl
-    | Alt
-    | Tab
-    | ShiftTab
-    | CapsLock
-    | Escape
-    | Enter
-    | ShiftEnter
-    | PageUp
-    | PageDown
-    | GoToStartOfLine
-    | GoToEndOfLine
-    | GoToStartOfWord
-    | GoToEndOfWord
-    | Undo
-    | Redo
-    | SelectAll
-    | Unhandled
-
-
-type Content
-    = Heading (List String)
-    | Paragraph (List String)
-    | BulletList (List String)
-    | MathDisplay (List String)
-    | MathInline (List String)
+    = Heading String Doc
+    | Paragraph (List Doc)
+    | BulletList (List Doc)
+    | MathDisplay String
+    | MathInline String
+    | Text String
     | Empty
 
 
-type Mode
-    = View
-    | Edit
+viewDoc : Doc -> Html msg
+viewDoc doc =
+    case doc of
+        Heading heading _ ->
+            h1 [] [ text heading ]
+
+        Paragraph _ ->
+            text ""
+
+        BulletList _ ->
+            text ""
+
+        MathDisplay content ->
+            Katex.view (content |> katex |> withDisplay Block)
+
+        MathInline content ->
+            Katex.view (content |> katex |> withDisplay Inline)
+
+        Text content ->
+            text content
+
+        Empty ->
+            text ""
+
+
+getChildren : Doc -> List Doc
+getChildren doc =
+    case doc of
+        Heading heading content ->
+            [ content ]
+
+        Paragraph content ->
+            content
+
+        BulletList content ->
+            content
+
+        MathDisplay content ->
+            []
+
+        MathInline content ->
+            []
+
+        Text content ->
+            []
+
+        Empty ->
+            []
+
+
+exampleDoc : Zipper Doc
+exampleDoc =
+    Heading "Hello World"
+        (Paragraph
+            [ Text "This is an example doc. We will modify this datastructure using a zipper."
+            , Text "The most important thing is that we can write and display mathematics using this doc. Here is an example:"
+            , MathInline "f(x)=x^2"
+            ]
+        )
+        |> build getChildren
+        |> fromTree
 
 
 main : Program () Model Msg
@@ -108,7 +110,7 @@ init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
         content =
-            fromTree <| Tree.singleton (MathInline [ "f(x)=x^2" ])
+            exampleDoc
     in
     ( content, Cmd.none )
 
@@ -116,23 +118,6 @@ init flags url key =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ContentChanged str ->
-            let
-                parseContent =
-                    \s -> s
-
-                parsed =
-                    parseContent str
-            in
-            --let
-            --    _ =
-            --        Debug.log "saving" str
-            --in
-            ( model, Cmd.none )
-
-        KeyPress _ ->
-            ( model, Cmd.none )
-
         LinkClicked _ ->
             ( model, Cmd.none )
 
@@ -145,82 +130,53 @@ view model =
     { title = "Demo"
     , body =
         [ div [ class "p-4" ]
-            [ Html.node "editor-field"
-                [ property "config" <| encodeNodeConfig { defineBlock = "|>" } ]
-                []
+            [ viewZipper model
             ]
         ]
     }
 
 
-updateNode : NodeMsg -> Node -> Node
-updateNode msg node =
-    case msg of
-        ChangeMode ->
-            case node.mode of
-                View ->
-                    { node | mode = Edit }
-
-                Edit ->
-                    { node | mode = View }
-
-
-viewContent : Content -> (Content -> Node) -> Html Msg
-viewContent content f =
-    viewNode (f content)
-
-
-viewNode : Node -> Html Msg
-viewNode node =
+viewZipper : Zipper Doc -> Html Msg
+viewZipper z =
+    --f (label z)
     let
-        editable =
-            case node.mode of
-                View ->
-                    False
-
-                Edit ->
-                    True
-
-        editingStyles =
-            "bg-slate-100"
+        root =
+            Zipper.current z
     in
-    Html.node "editor-field"
-        []
-        --[ Events.on "keydown"
-        --    (Decode.map KeyPress (Decode.field "key" Decode.string))
-        --, Attributes.contenteditable
-        --    True
-        ----, Events.on "beforeinput"
-        ----, Events.on "compositionend"
-        --]
-        []
+    li []
+        [ a
+            []
+            [ Html.span [] [ viewDoc root ] ]
+        , Html.ul [] <| (Zipper.openAll z |> List.map viewZipper)
+        ]
 
 
-textNode : String -> Node
-textNode s =
-    { content = s, mode = View }
+viewLevel : Zipper Doc -> Html Msg
+viewLevel zipper =
+    let
+        item =
+            Zipper.current zipper
+    in
+    Html.li []
+        [ Html.a []
+            [ if not (Zipper.isEmpty zipper) then
+                Html.span []
+                    [ Html.text "- "
+                    ]
+
+              else
+                Html.text ""
+            ]
+        , Html.ul [] <|
+            (Zipper.openAll zipper
+                |> List.map viewLevel
+            )
+        ]
 
 
-
---Html.Keyed.node "editor-field"
---    []
---    [ ( "asf"
---      , Html.Keyed.node "div"
---            [ Attributes.property "message" <| encodeNode
---            , Attributes.contenteditable True
---            , Events.on "" <|
---                Decode.map ContentChanged <|
---                    Decode.at [] <|
---                        Decode.string
---            ]
---            []
---      )
---    ]
-
-
-encodeNode : Encode.Value
-encodeNode =
-    Encode.object [ ( "hello", Encode.string "World" ) ]
+type Msg
+    = LinkClicked Browser.UrlRequest
+    | UrlChanged Url
 
 
 subscriptions : Model -> Sub Msg

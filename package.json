@@ -1,0 +1,27 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "docs": "vitepress dev docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kentookura/elm-prosemirror-math.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kentookura/elm-prosemirror-math/issues"
+  },
+  "homepage": "https://github.com/kentookura/elm-prosemirror-math#readme",
+  "dependencies": {
+    "markdown-it-citations": "^1.1.0",
+    "markdown-it-katex": "^2.0.3"
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "prosemirror-vite-demo",
+  "name": "prosemirror-math-demo",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -7,7 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
     "build": "vite build",
-    "docs:dev": "vitepress dev docs"
   },
   "repository": {
     "type": "git",
