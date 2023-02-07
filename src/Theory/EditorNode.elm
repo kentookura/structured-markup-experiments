@@ -46,18 +46,7 @@ type Key
 
 view : Model -> Html Msg
 view model =
-    case model.mode of
-        View ->
-            a [ onClick ChangeMode ] [ Katex.view (model.content |> katex |> asInline) ]
-
-        Edit ->
-            div
-                [ contenteditable True
-                , on "blur" (Json.map SaveInput targetTextContent)
-                , on "keydown" (Json.map KeyPress keyDecoder)
-                ]
-                [ text model.content
-                ]
+    Html.node "math-editor" [] []
 
 
 targetTextContent : Json.Decoder String

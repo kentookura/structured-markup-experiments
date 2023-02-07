@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Browser.Dom as Dom
+import Browser.Events exposing (onKeyDown)
 import Browser.Navigation as Nav
 import Editor
     exposing
@@ -18,9 +19,11 @@ import Editor
         , viewEditor
         )
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes as Attributes exposing (..)
 import Html.Events as Events exposing (..)
-import Json.Decode as Json exposing (Decoder, andThen)
+import Html.Keyed
+import Json.Decode as Decode exposing (Decoder, andThen)
+import Json.Encode as Encode
 import Task
 import Theory.EmbedKatex as Katex exposing (asInline, katex)
 import Url exposing (Url)
@@ -29,25 +32,65 @@ import Url exposing (Url)
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
-    | SaveInput String
-    | KeyPress Key
-    | ChangeMode
-    | FocusOn String
-    | FocusResult (Result Dom.Error ())
+    | ContentChanged String
+    | KeyPress String
+
+
+type NodeMsg
+    = ChangeMode
 
 
 type alias Model =
+    { content : Doc }
+
+
+type alias Node =
     { content : String, mode : Mode }
+
+
+type Doc
+    = Doc (List Content)
+
+
+type Key
+    = Space
+    | Left
+    | Right
+    | Up
+    | Down
+    | Shift
+    | Ctrl
+    | Alt
+    | Tab
+    | ShiftTab
+    | CapsLock
+    | Escape
+    | Enter
+    | ShiftEnter
+    | PageUp
+    | PageDown
+    | GoToStartOfLine
+    | GoToEndOfLine
+    | GoToStartOfWord
+    | GoToEndOfWord
+    | Undo
+    | Redo
+    | SelectAll
+    | Unhandled
+
+
+type Content
+    = Heading Int (List String)
+    | Paragraph (List String)
+    | BulletList (List String)
+    | MathDisplay (List String)
+    | MathInline (List String)
+    | Empty
 
 
 type Mode
     = View
     | Edit
-
-
-type Key
-    = Character Char
-    | Control String
 
 
 main : Program () Model Msg
@@ -64,37 +107,25 @@ main =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { content = "a=b", mode = Edit }, Cmd.none )
+    ( { content = Doc [ MathInline [ "f(x)=x^2" ] ] }, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FocusOn id ->
-            ( model, Dom.focus id |> Task.attempt FocusResult )
+        ContentChanged str ->
+            let
+                parseContent =
+                    \s -> s
 
-        FocusResult result ->
-            case result of
-                Err (Dom.NotFound i) ->
-                    ( model, Cmd.none )
-
-                Ok () ->
-                    ( model, Cmd.none )
-
-        SaveInput str ->
+                parsed =
+                    parseContent str
+            in
             --let
             --    _ =
             --        Debug.log "saving" str
             --in
-            ( { model | content = str }, Cmd.none )
-
-        ChangeMode ->
-            case model.mode of
-                View ->
-                    ( { model | mode = Edit }, Cmd.none )
-
-                Edit ->
-                    ( { model | mode = View }, Cmd.none )
+            ( { model | content = Doc [ MathInline [ str ] ] }, Cmd.none )
 
         KeyPress _ ->
             ( model, Cmd.none )
@@ -109,55 +140,88 @@ update msg model =
 view : Model -> Browser.Document Msg
 view model =
     { title = "Demo"
-    , body = [ viewNode model, pre [] [ text model.content ] ]
+    , body =
+        [ div [ class "p-4" ]
+            [ viewNode (textNode "asdf")
+            , div []
+                [ pre []
+                    [ text (Debug.toString model.content) ]
+                ]
+            ]
+        ]
     }
 
 
-viewNode : Model -> Html Msg
-viewNode model =
-    let
-        show =
-            case model.mode of
-                Edit ->
-                    ""
-
+updateNode : NodeMsg -> Node -> Node
+updateNode msg node =
+    case msg of
+        ChangeMode ->
+            case node.mode of
                 View ->
-                    ""
+                    { node | mode = Edit }
+
+                Edit ->
+                    { node | mode = View }
+
+
+viewContent : Content -> (Content -> Node) -> Html Msg
+viewContent content f =
+    viewNode (f content)
+
+
+viewNode : Node -> Html Msg
+viewNode node =
+    let
+        editable =
+            case node.mode of
+                View ->
+                    False
+
+                Edit ->
+                    True
+
+        editingStyles =
+            "bg-slate-100"
     in
-    div []
-        [ a
-            []
-            [ Katex.view (model.content |> katex |> asInline) ]
-        , div
-            [ contenteditable True
-            , on "blur" (Json.map SaveInput targetTextContent)
-            , on "keydown" (Json.map KeyPress keyDecoder)
-            ]
-            [ pre [] [ text model.content ]
-            ]
+    div
+        [ Events.on "keydown"
+            (Decode.map KeyPress (Decode.field "key" Decode.string))
+        , Attributes.contenteditable
+            editable
+
+        --, Events.on "beforeinput"
+        --, Events.on "compositionend"
         ]
+        [ text node.content ]
+
+
+textNode : String -> Node
+textNode s =
+    { content = s, mode = View }
+
+
+
+--Html.Keyed.node "editor-field"
+--    []
+--    [ ( "asf"
+--      , Html.Keyed.node "div"
+--            [ Attributes.property "message" <| encodeNode
+--            , Attributes.contenteditable True
+--            , Events.on "" <|
+--                Decode.map ContentChanged <|
+--                    Decode.at [] <|
+--                        Decode.string
+--            ]
+--            []
+--      )
+--    ]
+
+
+encodeNode : Encode.Value
+encodeNode =
+    Encode.object [ ( "hello", Encode.string "World" ) ]
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
-
-
-targetTextContent : Json.Decoder String
-targetTextContent =
-    Json.at [ "target", "textContent" ] Json.string
-
-
-keyDecoder : Json.Decoder Key
-keyDecoder =
-    Json.map toKey (Json.field "key" Json.string)
-
-
-toKey : String -> Key
-toKey string =
-    case String.uncons string of
-        Just ( char, "" ) ->
-            Character char
-
-        _ ->
-            Control string
