@@ -4,28 +4,16 @@ import Browser
 import Browser.Dom as Dom
 import Browser.Events exposing (onKeyDown)
 import Browser.Navigation as Nav
-import Editor
-    exposing
-        ( CustomMark
-        , Doc
-        , Selection
-        , State
-        , customMarkDecoder
-        , docDecoder
-        , docFormula
-        , empty
-        , mathMarkDecoder
-        , mathMarkEncoder
-        , viewEditor
-        )
 import Html exposing (..)
-import Html.Attributes as Attributes exposing (..)
+import Html.Attributes as Attributes exposing (attribute, class, property)
 import Html.Events as Events exposing (..)
-import Html.Keyed
+import Html.Keyed as Keyed
 import Json.Decode as Decode exposing (Decoder, andThen)
-import Json.Encode as Encode
+import Json.Encode as Encode exposing (Value)
+import Lib.EmbedKatex as Katex exposing (asInline, katex)
 import Task
-import Theory.EmbedKatex as Katex exposing (asInline, katex)
+import Tree
+import Tree.Zipper exposing (Zipper, fromTree)
 import Url exposing (Url)
 
 
@@ -41,7 +29,7 @@ type NodeMsg
 
 
 type alias Model =
-    { content : Doc }
+    Zipper Content
 
 
 type alias Node =
@@ -50,6 +38,17 @@ type alias Node =
 
 type Doc
     = Doc (List Content)
+
+
+type alias NodeConfig =
+    { defineBlock : String }
+
+
+encodeNodeConfig : NodeConfig -> Value
+encodeNodeConfig cfg =
+    Encode.object
+        [ ( "defineBlock", Encode.string cfg.defineBlock )
+        ]
 
 
 type Key
@@ -80,7 +79,7 @@ type Key
 
 
 type Content
-    = Heading Int (List String)
+    = Heading (List String)
     | Paragraph (List String)
     | BulletList (List String)
     | MathDisplay (List String)
@@ -107,7 +106,11 @@ main =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { content = Doc [ MathInline [ "f(x)=x^2" ] ] }, Cmd.none )
+    let
+        content =
+            fromTree <| Tree.singleton (MathInline [ "f(x)=x^2" ])
+    in
+    ( content, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -125,7 +128,7 @@ update msg model =
             --    _ =
             --        Debug.log "saving" str
             --in
-            ( { model | content = Doc [ MathInline [ str ] ] }, Cmd.none )
+            ( model, Cmd.none )
 
         KeyPress _ ->
             ( model, Cmd.none )
@@ -142,11 +145,9 @@ view model =
     { title = "Demo"
     , body =
         [ div [ class "p-4" ]
-            [ viewNode (textNode "asdf")
-            , div []
-                [ pre []
-                    [ text (Debug.toString model.content) ]
-                ]
+            [ Html.node "editor-field"
+                [ property "config" <| encodeNodeConfig { defineBlock = "|>" } ]
+                []
             ]
         ]
     }
@@ -183,16 +184,16 @@ viewNode node =
         editingStyles =
             "bg-slate-100"
     in
-    div
-        [ Events.on "keydown"
-            (Decode.map KeyPress (Decode.field "key" Decode.string))
-        , Attributes.contenteditable
-            editable
-
-        --, Events.on "beforeinput"
-        --, Events.on "compositionend"
-        ]
-        [ text node.content ]
+    Html.node "editor-field"
+        []
+        --[ Events.on "keydown"
+        --    (Decode.map KeyPress (Decode.field "key" Decode.string))
+        --, Attributes.contenteditable
+        --    True
+        ----, Events.on "beforeinput"
+        ----, Events.on "compositionend"
+        --]
+        []
 
 
 textNode : String -> Node

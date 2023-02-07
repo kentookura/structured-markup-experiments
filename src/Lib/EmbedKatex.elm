@@ -1,4 +1,4 @@
-module Theory.EmbedKatex exposing (..)
+module Lib.EmbedKatex exposing (..)
 
 import Html exposing (Html, node)
 import Html.Attributes exposing (attribute, id)
