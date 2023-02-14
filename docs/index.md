@@ -3,24 +3,15 @@
 This Repo contains experiments about my ideas concerning structure editors for
 mathematical markup.
 
+### Meeting notes
+
+- [13. 02. 2023](./meetings/13.02.23/notes.md)
+
 ### Demos
 
 [zipper](./zipper.md)
 
 [prosemirror-math](./prosemirror-math.md)
-
-### Meetin notes
-
-- [13. 02. 2023](./meetings/13.02.23/notes.md)
-
-### Open Questions
-
-- Should I use `contenteditable` at all? Maybe it is better to just track all
-  keypresses in elm and modify the model that way.
-
-### Technical problems
-
-- Working with the DOM is hard
 
 ## Similar projects
 

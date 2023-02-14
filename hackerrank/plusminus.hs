@@ -1,3 +1,4 @@
+--- Not working
 plusMinus :: Fractional a =>  Ord a => [a] -> [a]
 plusMinus arr = [pos, neg, zero]
     where
