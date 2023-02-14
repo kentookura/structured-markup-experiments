@@ -9,6 +9,10 @@ mathematical markup.
 
 [prosemirror-math](./prosemirror-math.md)
 
+### Meetin notes
+
+- [13. 02. 2023](./meetings/13.02.23/notes.md)
+
 ### Open Questions
 
 - Should I use `contenteditable` at all? Maybe it is better to just track all
